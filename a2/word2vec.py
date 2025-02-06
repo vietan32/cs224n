@@ -134,6 +134,41 @@ def negSamplingLossAndGradient(
 
     ### Please use your implementation of sigmoid in here.
 
+    # n: size_of_word_vectors
+    # m: num_words
+
+    # v_c ->  centerWordVec:    (n,)    ->   (1,n)
+    # o   ->  outsideWordIdx:   scalar
+    # U   ->  outsideVectors:   (m,n)
+    # z   ->  np.dot(U, v_c):   (m,)    ->   (1,m)
+
+    centerWordVec = centerWordVec.reshape((1, -1))               # (1,n)
+    u_o = outsideVectors[[outsideWordIdx]]                       # (1,n)
+    u_n = outsideVectors[negSampleWordIndices]                   # (K,n)
+
+    # step by step
+    # z_o = sigmoid(centerWordVec @ u_o.T)                         # (1,1)
+    # z_n = sigmoid(-centerWordVec @ u_n.T)                        # (1,K)
+    # loss = -np.log(z_o) - np.log(z_n).sum(axis=1)                # scalar
+    # gradCenterVec = -((1-z_o)*u_o - (1-z_n)@u_n).squeeze()       # (1,n)
+    # g_o = -(1-z_o).T @ centerWordVec                             # (1,n)
+    # g_n = -(1-z_n).T @ centerWordVec                             # (K,n)
+    # grads = np.vstack((g_o, -g_n))                               # (K+1,n)
+    # gradOutsideVecs = np.zeros_like(outsideVectors)              # (m,n)
+    # np.add.at(gradOutsideVecs, indices, grads)
+
+    u = np.vstack((u_o, -u_n))                                   # (K+1,n)
+    z_u = sigmoid(centerWordVec @ u.T)                           # (1,K+1)
+    loss = -np.log(z_u).sum()                                    # scalar
+    delta = 1 - z_u                                              # (1,K+1)
+
+    gradCenterVec = -(delta@u).squeeze()                         # (1,n)
+
+    gradOutsideVecs = np.zeros_like(outsideVectors)              # (m,n)
+    grads = delta.T @ centerWordVec                              # (K+1,n)
+    grads[0] *= -1                                               # (K+1,n)
+    np.add.at(gradOutsideVecs, indices, grads)
+
     ### END YOUR CODE
 
     return loss, gradCenterVec, gradOutsideVecs
