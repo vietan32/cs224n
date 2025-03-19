@@ -31,8 +31,11 @@ class PartialParse(object):
         ###
         ### Note: The root token should be represented with the string "ROOT"
         ### Note: If you need to use the sentence object to initialize anything, make sure to not directly 
-        ###       reference the sentence object.  That is, remember to NOT modify the sentence object. 
+        ###       reference the sentence object.  That is, remember to NOT modify the sentence object.
 
+        self.stack = ["ROOT"]
+        self.buffer = sentence.copy()
+        self.dependencies = []
 
         ### END YOUR CODE
 
@@ -51,6 +54,18 @@ class PartialParse(object):
         ###         1. Shift
         ###         2. Left Arc
         ###         3. Right Arc
+
+        if transition == 'S':
+            if len(self.buffer) > 0:
+                self.stack.append(self.buffer.pop(0))
+        elif transition == 'LA':
+            if len(self.stack) > 1:
+                self.dependencies.append((self.stack[-1], self.stack.pop(-2)))
+        elif transition == 'RA':
+            if len(self.stack) > 1:
+                self.dependencies.append((self.stack[-2], self.stack.pop(-1)))
+        else:
+            print("Invalid transition")
 
 
         ### END YOUR CODE
