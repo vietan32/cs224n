@@ -118,6 +118,18 @@ def minibatch_parse(sentences, model, batch_size):
     ###             to remove objects from the `unfinished_parses` list. This will free the underlying memory that
     ###             is being accessed by `partial_parses` and may cause your code to crash.
 
+    partial_parses = [PartialParse(sentence) for sentence in sentences]
+    unfinished_parses = partial_parses[:]
+
+    while len(unfinished_parses) > 0:
+        minibatch = unfinished_parses[:batch_size]
+        transitions = model.predict(minibatch)
+        for parser, transition in zip(minibatch, transitions):
+            parser.parse_step(transition)
+            if len(parser.buffer) == 0 and len(parser.stack) == 1:
+                unfinished_parses.remove(parser)
+
+    dependencies = [partial_parse.dependencies for partial_parse in partial_parses]
 
     ### END YOUR CODE
 
@@ -186,7 +198,7 @@ class DummyModel(object):
         """First shifts everything onto the stack and then does exclusively right arcs if the first word of
         the sentence is "right", "left" if otherwise.
         """
-        return [("RA" if pp.stack[1] is "right" else "LA") if len(pp.buffer) == 0 else "S"
+        return [("RA" if pp.stack[1] == "right" else "LA") if len(pp.buffer) == 0 else "S"
                 for pp in partial_parses]
 
     def interleave_predict(self, partial_parses):
